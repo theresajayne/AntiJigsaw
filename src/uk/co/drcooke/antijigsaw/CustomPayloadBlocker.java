@@ -3,7 +3,7 @@ package uk.co.drcooke.antijigsaw;
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
-import net.minecraft.server.v1_8_R3.PacketPlayInCustomPayload;
+import io.netty.buffer.ByteBuf;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -20,9 +20,8 @@ public class CustomPayloadBlocker extends PacketAdapter{
 
     @Override
     public void onPacketReceiving(PacketEvent event){
-        PacketPlayInCustomPayload packet = (PacketPlayInCustomPayload)event.getPacket().getHandle();
-        if(packet.a().equals("MC|BEdit") || packet.a().equals("MC|BSign")){
-            if(packet.b().capacity()>30000){
+        if(event.getPacket().getStrings().getValues().get(0).equals("MC|BEdit") || event.getPacket().getStrings().getValues().get(0).equals("MC|BSign")){
+            if(((ByteBuf)event.getPacket().getModifier().getValues().get(1)).capacity()>30000){
                 if(uuids.contains(event.getPlayer().getUniqueId())){
                     Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () ->event.getPlayer().kickPlayer("Jigsaw Crash"));
                 }else{
