@@ -1,0 +1,5 @@
+#What message should the user be kicked with?
+message: "Jigsaw Crash"
+#Configure how the exploit is detected
+channels: ["MC|BEdit", "MC|BSign"]
+max-size: 30000

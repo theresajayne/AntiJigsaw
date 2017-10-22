@@ -7,7 +7,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class AntiJigsaw extends JavaPlugin{
 
     public void onEnable(){
-        CustomPayloadBlocker listener = new CustomPayloadBlocker(this);
+        saveDefaultConfig();
+        CustomPayloadBlocker listener = new CustomPayloadBlocker(this, getConfig());
         ProtocolLibrary.getProtocolManager().addPacketListener(listener);
         Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> listener.uuids.clear(), 5);
     }
