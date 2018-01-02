@@ -20,8 +20,17 @@ import com.comphenix.protocol.ProtocolLibrary;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * The main class of the AntiJigsaw plugin.
+ * This plugin is designed to block the jigsaw crash exploit that affects all bukkit/spigot servers.
+ *
+ * @author David Cooke
+ */
 public class AntiJigsaw extends JavaPlugin{
 
+    /**
+     * Ran when the plugin is enabled.
+     */
     public void onEnable(){
         saveDefaultConfig();
         CustomPayloadBlocker listener = new CustomPayloadBlocker(this, getConfig());
