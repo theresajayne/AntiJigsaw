@@ -28,13 +28,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Processes all custom payload packets. If the packets are too big and sent on certain channels, it will
+ * kick the user with a configurable message.
+ *
+ * @author David Cooke
+ */
 public class CustomPayloadBlocker extends PacketAdapter{
 
+    /**
+     * The maximum capacity of the buffer in custom payload packets
+     */
     private int maxCapacity;
+
+
+    /**
+     * The channels that should be monitored
+     */
     private List<String> channels;
+
+    /**
+     * The message that should be used to kick the user.
+     */
     private String message;
+
+    /**
+     * There is a (very small) chance that the user has legitimately sent a very large packet on the same channel as
+     * Jigsaw to avoid kicking users unfairly, their uuid is added to a list, if they then send a second very large packet,
+     * they will be kicked. This list is cleared 4 times every second.
+     */
     ArrayList<UUID> uuids = new ArrayList<>();
 
+
+    /**
+     * Constructs the custom payload monitor. Reads the settings from the config into variables.
+     *
+     * @param plugin instance of AntiJigsaw
+     * @param config the configuration of AntiJigsaw
+     */
     CustomPayloadBlocker(Plugin plugin, ConfigurationSection config) {
         super(plugin, PacketType.Play.Client.CUSTOM_PAYLOAD);
         this.maxCapacity = config.getInt("max-size");
@@ -42,6 +73,11 @@ public class CustomPayloadBlocker extends PacketAdapter{
         this.message = config.getString("message");
     }
 
+    /**
+     * Listens for custom payload packets and evaluates whether they are legitimate.
+     *
+     * @param event the event from protocollib
+     */
     @Override
     public void onPacketReceiving(PacketEvent event){
         if(channels.contains(event.getPacket().getStrings().getValues().get(0))){
