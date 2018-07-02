@@ -1,4 +1,4 @@
 main: uk.co.drcooke.antijigsaw.AntiJigsaw
 name: AntiJigsaw
-version: 1.03
+version: 1.04
 depend: [ProtocolLib]

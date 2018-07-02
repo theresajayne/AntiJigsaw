@@ -26,16 +26,17 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author David Cooke
  */
-public class AntiJigsaw extends JavaPlugin{
-
+public class AntiJigsaw extends JavaPlugin {
+    
     /**
      * Ran when the plugin is enabled.
      */
-    public void onEnable(){
+    @Override
+    public void onEnable() {
         saveDefaultConfig();
         CustomPayloadBlocker listener = new CustomPayloadBlocker(this, getConfig());
         ProtocolLibrary.getProtocolManager().addPacketListener(listener);
-        Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> listener.uuids.clear(), 5);
+        Bukkit.getScheduler().scheduleSyncDelayedTask(this, listener.uuids::clear, 5);
     }
-
+    
 }

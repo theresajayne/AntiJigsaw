@@ -20,6 +20,7 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import io.netty.buffer.ByteBuf;
+import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
@@ -34,32 +35,29 @@ import java.util.UUID;
  *
  * @author David Cooke
  */
-public class CustomPayloadBlocker extends PacketAdapter{
-
-    /**
-     * The maximum capacity of the buffer in custom payload packets
-     */
-    private int maxCapacity;
-
-
-    /**
-     * The channels that should be monitored
-     */
-    private List<String> channels;
-
-    /**
-     * The message that should be used to kick the user.
-     */
-    private String message;
-
+public class CustomPayloadBlocker extends PacketAdapter {
+    
+    private final boolean kick;
+    private final boolean ban;
     /**
      * There is a (very small) chance that the user has legitimately sent a very large packet on the same channel as
      * Jigsaw to avoid kicking users unfairly, their uuid is added to a list, if they then send a second very large packet,
      * they will be kicked. This list is cleared 4 times every second.
      */
     ArrayList<UUID> uuids = new ArrayList<>();
-
-
+    /**
+     * The maximum capacity of the buffer in custom payload packets
+     */
+    private int maxCapacity;
+    /**
+     * The channels that should be monitored
+     */
+    private List<String> channels;
+    /**
+     * The message that should be used to kick the user.
+     */
+    private String message;
+    
     /**
      * Constructs the custom payload monitor. Reads the settings from the config into variables.
      *
@@ -71,25 +69,34 @@ public class CustomPayloadBlocker extends PacketAdapter{
         this.maxCapacity = config.getInt("max-size");
         this.channels = config.getStringList("channels");
         this.message = config.getString("message");
+        this.kick = config.getBoolean("kick");
+        this.ban = config.getBoolean("ban");
     }
-
+    
     /**
      * Listens for custom payload packets and evaluates whether they are legitimate.
      *
      * @param event the event from protocollib
      */
     @Override
-    public void onPacketReceiving(PacketEvent event){
-        if(channels.contains(event.getPacket().getStrings().getValues().get(0))){
-            if(((ByteBuf)event.getPacket().getModifier().getValues().get(1)).capacity() > maxCapacity){
-                if(uuids.contains(event.getPlayer().getUniqueId())){
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () ->event.getPlayer().kickPlayer(message));
-                }else{
-                    uuids.add(event.getPlayer().getUniqueId());
+    public void onPacketReceiving(PacketEvent event) {
+        if (channels.contains(event.getPacket().getStrings().getValues().get(0))
+                && ((ByteBuf) event.getPacket().getModifier().getValues().get(1)).capacity() > maxCapacity) {
+            if (uuids.contains(event.getPlayer().getUniqueId())) {
+                if (kick) {
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,
+                            () -> event.getPlayer().kickPlayer(message));
                 }
-                event.setCancelled(true);
+                if (ban) {
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,
+                            () -> event.getPlayer().getServer().getBanList(BanList.Type.NAME)
+                                    .addBan(event.getPlayer().getName(), message, null, null));
+                }
+            } else {
+                uuids.add(event.getPlayer().getUniqueId());
             }
+            event.setCancelled(true);
         }
     }
-
+    
 }
