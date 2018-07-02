@@ -3,5 +3,6 @@ message: "Jigsaw Crash"
 #Configure how the exploit is detected
 channels: ["MC|BEdit", "MC|BSign"]
 max-size: 30000
+#Should players be kicked and banned
 kick: true
 ban: true
