@@ -1,8 +1,9 @@
-#What message should the user be kicked with?
-message: "Jigsaw Crash"
 #Configure how the exploit is detected
 channels: ["MC|BEdit", "MC|BSign"]
 max-size: 30000
-#Should players be kicked and banned
-kick: true
-ban: true
+
+#Commands to dispatch when the exploit is detected.
+#%player% will be replaced with the player name.
+commands:
+  - 'ban %player% Jigsaw Crash'
+  - 'broadcast Jigsaw Crash'

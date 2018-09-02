@@ -20,9 +20,9 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import io.netty.buffer.ByteBuf;
-import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
@@ -37,26 +37,34 @@ import java.util.UUID;
  */
 public class CustomPayloadBlocker extends PacketAdapter {
     
-    private final boolean kick;
-    private final boolean ban;
     /**
      * There is a (very small) chance that the user has legitimately sent a very large packet on the same channel as
      * Jigsaw to avoid kicking users unfairly, their uuid is added to a list, if they then send a second very large packet,
      * they will be kicked. This list is cleared 4 times every second.
      */
-    ArrayList<UUID> uuids = new ArrayList<>();
+    List<UUID> uuids = new ArrayList<>();
+    
     /**
      * The maximum capacity of the buffer in custom payload packets
      */
     private int maxCapacity;
+    
     /**
-     * The channels that should be monitored
+     * The channels that should be monitored.
      */
     private List<String> channels;
+    
     /**
-     * The message that should be used to kick the user.
+     * The commands to dispatch when the exploit is used.
      */
-    private String message;
+    private List<String> commands;
+    
+    /**
+     * Bukkit doesn't allow async player kicks so the commands have to be delayed by 1 tick. During
+     * this tick, loads of packets will be received and the commands will be spammed so this variable
+     * is used to keep track of if the commands have been ran for a particular player.
+     */
+    private List<UUID> waitingUUIDs = new ArrayList<>();
     
     /**
      * Constructs the custom payload monitor. Reads the settings from the config into variables.
@@ -68,9 +76,7 @@ public class CustomPayloadBlocker extends PacketAdapter {
         super(plugin, PacketType.Play.Client.CUSTOM_PAYLOAD);
         this.maxCapacity = config.getInt("max-size");
         this.channels = config.getStringList("channels");
-        this.message = config.getString("message");
-        this.kick = config.getBoolean("kick");
-        this.ban = config.getBoolean("ban");
+        this.commands = config.getStringList("commands");
     }
     
     /**
@@ -83,19 +89,22 @@ public class CustomPayloadBlocker extends PacketAdapter {
         if (channels.contains(event.getPacket().getStrings().getValues().get(0))
                 && ((ByteBuf) event.getPacket().getModifier().getValues().get(1)).capacity() > maxCapacity) {
             if (uuids.contains(event.getPlayer().getUniqueId())) {
-                if (kick) {
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,
-                            () -> event.getPlayer().kickPlayer(message));
-                }
-                if (ban) {
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,
-                            () -> event.getPlayer().getServer().getBanList(BanList.Type.NAME)
-                                    .addBan(event.getPlayer().getName(), message, null, null));
-                }
+                dispatchCommands(event.getPlayer());
             } else {
                 uuids.add(event.getPlayer().getUniqueId());
             }
             event.setCancelled(true);
+        }
+    }
+    
+    private void dispatchCommands(Player player) {
+        if(waitingUUIDs.contains(player.getUniqueId()))
+            return;
+        waitingUUIDs.add(player.getUniqueId());
+        
+        for(String command : commands) {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getServer().getConsoleSender(),
+                    command.replace("%player%", player.getName())), 1);
         }
     }
     
